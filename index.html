@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrotech Derivative Simulator - FFB Growth</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --palm-green: #2d5a27;
+            --soil-brown: #4e342e;
+            --accent-yellow: #fbc02d;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f2;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        h1 { color: var(--palm-green); text-align: center; }
+        .math-box {
+            background: #e8f5e9;
+            padding: 15px;
+            border-left: 5px solid var(--palm-green);
+            margin: 20px 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .explanation {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        #chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        #result-display {
+            padding: 20px;
+            border: 2px dashed var(--palm-green);
+            border-radius: 10px;
+            text-align: center;
+            min-height: 80px;
+            transition: all 0.3s ease;
+        }
+        .highlight {
+            font-weight: bold;
+            color: var(--palm-green);
+            font-size: 1.2em;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Oil Palm FFB Weight Gain Simulator</h1>
+    
+    <div class="explanation">
+        <p><strong>Scenario:</strong> In Malaysian Agrotech, tracking the <strong>Fresh Fruit Bunch (FFB)</strong> weight is critical for yield prediction. Using realistic data trends for <em>Elaeis guineensis</em>, we model the weight $f(x)$ in kilograms over 22 weeks of development.</p>
+        <p>By calculating the derivative $f'(x)$, we find the <strong>Daily Accumulation Rate</strong>. This tells us when the fruit is bulking most aggressively.</p>
+    </div>
+
+    <div class="math-box">
+        <strong>Growth Function:</strong> $f(x) = -0.004x^3 + 0.12x^2 + 0.4x + 2$ <br>
+        <strong>Derivative (Rate):</strong> $f'(x) = -0.012x^2 + 0.24x + 0.4$
+    </div>
+
+    <div id="chart-wrapper">
+        <canvas id="growthChart"></canvas>
+    </div>
+
+    <div id="result-display">
+        <p id="instruction-text">Click any point on the graph to analyze the growth rate at that specific week.</p>
+        <div id="data-output"></div>
+    </div>
+
+    <div class="footer">
+        Data modeled after generic Malaysian Oil Palm ripening profiles (MPOB-style trends). <br>
+        Built for SFA: Agrotech Students.
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('growthChart').getContext('2d');
+    const labels = Array.from({length: 23}, (_, i) => i);
+    
+    // f(x) = -0.004x^3 + 0.12x^2 + 0.4x + 2
+    const growthData = labels.map(x => (-0.004 * Math.pow(x, 3) + 0.12 * Math.pow(x, 2) + 0.4 * x + 2).toFixed(2));
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'FFB Weight (kg)',
+                data: growthData,
+                borderColor: '#2d5a27',
+                backgroundColor: 'rgba(45, 90, 39, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#fbc02d'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: { enabled: false },
+                legend: { display: true }
+            },
+            scales: {
+                y: { 
+                    title: { display: true, text: 'Weight (kg)' },
+                    beginAtZero: true 
+                },
+                x: { title: { display: true, text: 'Weeks Since Anthesis' } }
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const x = labels[index];
+                    const weight = growthData[index];
+                    
+                    // Calculate f'(x) = -0.012x^2 + 0.24x + 0.4
+                    const rate = (-0.012 * Math.pow(x, 2) + 0.24 * x + 0.4).toFixed(3);
+                    
+                    displayResults(x, weight, rate);
+                }
+            },
+            animation: {
+                duration: 2000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+
+    function displayResults(week, weight, rate) {
+        const output = document.getElementById('data-output');
+        const instruction = document.getElementById('instruction-text');
+        
+        instruction.style.display = 'none';
+        
+        let layman = "";
+        if (rate > 1.2) {
+            layman = "The bunch is in its <strong>'Grand Phase'</strong> of growth. Nutrient demand is at its peak!";
+        } else if (rate > 0.5) {
+            layman = "Steady accumulation. The plant is effectively converting sunlight into fruit oil/mass.";
+        } else if (week > 18) {
+            layman = "Growth is slowing down. The bunch is reaching physiological maturity (ready for harvest).";
+        } else {
+            layman = "Early development. The bunch is establishing its structure.";
+        }
+
+        output.innerHTML = `
+            <div style="margin-bottom:10px;">At <strong>Week ${week}</strong>:</div>
+            <div>Current Weight: <span class="highlight">${weight} kg</span></div>
+            <div>Rate of Change [$f'(${week})$]: <span class="highlight">${rate} kg/week</span></div>
+            <p style="margin-top:15px; color:#555; font-style:italic;">"${layman}"</p>
+        `;
+        
+        document.getElementById('result-display').style.borderColor = '#fbc02d';
+    }
+</script>
+
+</body>
+</html>
